@@ -3,6 +3,16 @@ uuid = "17b27be6-71fe-44f0-935d-932b83ea039b"
 authors = ["Lucien Huber <huberlulu@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+CSetAutomorphisms = "1602be87-98d2-44e8-83ad-5679ea8c0714"
+Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
+DirectedHalfEdgeGraphs = "f8c2e6cc-c85f-41e3-8cb9-9b946d74cdf0"
+Latexify = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
+REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+
 [compat]
 julia = "1.7"
 
