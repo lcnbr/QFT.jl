@@ -15,6 +15,9 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
 
+Reexport = "1"
+
+
 CSetAutomorphisms = "0.1"
 
 
