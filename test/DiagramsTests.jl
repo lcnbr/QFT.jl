@@ -1,41 +1,28 @@
 module TestDiagramsGraphs
-using DirectedHalfEdgeGraphs
-using MomentumGraphs
+import Term: install_term_stacktrace
+
+install_term_stacktrace()  # entering the danger zone
+
+
+using QFT.Diagrams
 using Test
-using Catlab.CategoricalAlgebra.CSets
-using MomentumGraphs.Form
+using Catlab.CategoricalAlgebra
 using Symbolics
 using Catlab
 using Catlab.Theories, Catlab.CategoricalAlgebra
 
 import Symbolics: variables, value
-using Catlab.Graphs.BasicGraphs
-using Catlab.Graphs.GraphGenerators
-using Catlab.CategoricalAlgebra
+using Catlab.Graphs
 
-import Catlab.Theories: src, tgt
 using CSetAutomorphisms
-using MomentumGraphs.FieldGraphs
-
-qd = qDiagram(
-  [-2, 1, 3, -1, -4, 2, 4, -3],
-  [0, 2, 4, 0, 0, 1, 3, 0],
-  [1, 1, 1, 1, 2, 2, 2, 2],
-  [:phi1c, :photon, :photon, :phi1, :phi2c, :photon, :photon, :phi2],
-  ID=1,
-  pre_factor=(+1) * 1 // 2,
-  nprops=2,
-  nloops=1,
-  nin=2,
-  nout=2
-)
-
-
+using QFT.FieldGraphs
+using QFT.Fields
+include("SQED.jl")
 diag1=(
   H           = [-2,1,3,-1,-4,2,4,-3],
   Hdual       = [0,2,4,0,0,1,3,0],
   vertex      = [1,1,1,1,2,2,2,2],
-  field       = [:phi1c,:photon,:photon,:phi1,:phi2c,:photon,:photon,:phi2],
+  field       = [Phi1c,Photon,Photon,Phi1,Phi2c,Photon,Photon,Phi2],
   ID          = 1,
   pre_factor  = (+1)*1//2,
   nprops      = 2,
@@ -44,15 +31,61 @@ diag1=(
   nout        = 2
   )
 
-qDiagram(;diag1...)
+qd =qDiagram(;diag1...)
+qd.g
+to_graphviz(qd.g)
+using QFT.NickelIndex: root
+root(qd.nickel_index)
+applyRules(qd.g)
+toform(qd)
+using QFT 
+QFT.FieldGraphs.ne(qd.g)
 
-to_graphviz(qd.g,field_colors=Dict(:photon => "black", :phi1 => "blue", :phi2 => "red", :phi1c => "blue", :phi2c => "red"))
-dualDict=Dict(:phi1=>:phi1c,:phi2=>:phi2c,:photon=>:photon)
-massDict=Dict(:photon=>0,:phi1=>1,:phi2=>2,:phi1c=>1,:phi2c=>2)
 nickel_index(call_nauty(qd.g).cset)
-diags=include("QGRAFjl/3lSQED.jl")
+diags=include("QGRAFjl/1lSQED.jl")
 
-qDiags=[qDiagram(;diag...,dualDict,massDict) for diag in diags]
+
+
+qDiags=[qDiagram(;diag...) for diag in diags]
+open("diags.frm";create=true,write=true) do io
+  write(io,"""
+  Symbol x;
+Auto V p;
+Auto V p;
+Auto V q;
+Auto S m;
+S e;
+Auto S Q;
+Auto I nu;
+CF prop;
+CF inv;
+  """)
+  for qd in qDiags
+    println(io,toform(qd))
+  end
+end;
+
+
+toform.(qDiags)
+i=13
+qDiags[i].nloops
+call_nauty(qDiags[i].g).cset
+(applyRules(qDiags[i].g;MIME="text/FORM"))
+qDiags[i].nickel_index
+dict=momentum_equations_solved( qDiags[i].g)
+
+
+
+SymbolicUtils.Sym{Real, Base.ImmutableDict{DataType, Any}} <: SymbolicUtils.Sym{T} where T
+using Symbolics: tosymbol
+SymbolicUtils.Add<:SymbolicUtils.Symbolic
+dict
+show(stdout, MIME("text/FORM"), dict)
+
+
+
+
+
 
 using StatsBase
 
@@ -72,7 +105,7 @@ qDiags
 (d -> d.nickel_index).(qDiags)
 #(sample(qDiags,    253 , replace=false))...
 alldiags=(⊕(((x -> x.g).(qDiags))...))
-to_graphviz(alldiags,field_colors=Dict(:photon => "black", :phi1 => "blue", :phi2 => "red", :phi1c => "deepskyblue", :phi2c => "indianred"))
+to_graphviz(alldiags,)
 (x -> x.g).(qDiags)
 
 

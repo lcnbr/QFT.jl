@@ -1,10 +1,13 @@
 module Fields
 using Reexport
-export AbstractField,AbstractScalarField,ScalarField,AbstractVectorField,VectorField,AbstractTensorField,TensorField,AbstractGaugeVectorField,GaugeVectorField,decoration,ismassless,AdjointField,basefield,color,isadjoint,isselfadjoint
+export AbstractField,AbstractScalarField,ScalarField,AbstractVectorField,VectorField,AbstractTensorField,TensorField,AbstractGaugeVectorField,GaugeVectorField,decoration,ismassless,AdjointField,basefield,color,isadjoint,isselfadjoint,feynmanRule,subscript,addSub,charge,index,indices
 using ...Form
-import ..QFT:mass
+@reexport import ..QFT:mass
 
 abstract type AbstractField end
+
+subscript(i) = join(Char(0x2080 + d) for d in reverse!(digits(i)))
+addSub(p,i)=Symbol(p,subscript(i))
 
 (::Type{T})(f::T) where {T<: AbstractField} =f
 
@@ -24,6 +27,7 @@ Base.show(io::IO, ::MIME"text/plain", f::AdjointField{Kind}) where Kind = print(
 Base.show(io::IO, f::AdjointField{Kind}) where Kind = print(io,(string("Adjoint ",f.parent)))
 
 decoration(::AbstractField) = :none
+name(f::AbstractField) = f.name
 
 Base.adjoint(f::T) where T<: AbstractField = Base.adjoint(T)(f)
 Base.adjoint(::Type{AdjointField{S}}) where S  = S
@@ -47,6 +51,10 @@ color(::Type{T}) where T<: AbstractField = "black"
 mass(::T) where T<: AbstractField = mass(T)
 mass(::Type{AdjointField{S}}) where S = mass(S)
 mass(::Type{T}) where T<: AbstractField = :none
+
+charge(::T) where T<: AbstractField = charge(T) 
+charge(::Type{AdjointField{S}}) where S = charge(S)
+charge(::Type{T}) where T<: AbstractField = :none
 
 ismassless(::T) where T<: AbstractField = ismassless(T)
 ismassless(::Type{AdjointField{S}}) where S = ismassless(S)
@@ -88,8 +96,10 @@ struct VectorField{Kind} <: AbstractVectorField
   VectorField{Kind}(index::FIndex,name::Symbol=Kind) where Kind =new(name,index)
 end
 
+index(f::AbstractVectorField) = f.index
+
 VectorField(index::FIndex,name::Symbol) = VectorField{name}(index) 
-(::Type{T})(ID::Int,name...) where T<: AbstractVectorField= T(FIndex("mu",ID),name...)
+(::Type{T})(ID::Int,name...) where T<: AbstractVectorField= T(FIndex("nu",ID),name...)
 
 (::Type{T})(f::VectorField) where T <: AbstractVectorField=T(f.index,f.name)
 
@@ -110,7 +120,9 @@ struct TensorField{Kind} <: AbstractTensorField
   name::Symbol
   indices::AbstractVector{FIndex}
   TensorField{Kind}(indices::AbstractVector{FIndex},name::Symbol=Kind) where Kind =new(name,indices)
-end 
+end
+
+indices(f::AbstractTensorField) = f.indices 
 
 TensorField(indices::AbstractVector{FIndex},name::Symbol) = TensorField{name}(indices) 
 (::Type{T})(f::AbstractTensorField) where T <: AbstractTensorField =T(f.indices,f.name)
@@ -128,6 +140,8 @@ struct GaugeVectorField{Kind} <: AbstractGaugeVectorField
   index::FIndex
   GaugeVectorField{Kind}(index::FIndex,name::Symbol=Kind) where Kind=new(name,index)
 end  
+
+
 (::Type{T})(f::AbstractGaugeVectorField) where T <: AbstractGaugeVectorField=T(f.index,f.name)
 GaugeVectorField(index::FIndex,name::Symbol) = GaugeVectorField{name}(index)
 function Base.show(io::IO,f::GaugeVectorField{Kind}) where Kind
@@ -139,5 +153,42 @@ function Base.show(io::IO,f::GaugeVectorField{Kind}) where Kind
 end
 
 Base.show(io::IO, ::MIME"text/plain", ::Type{GaugeVectorField{Kind}}) where Kind = print(io,(string("Gauge: ",Kind)))
+
+
+"""
+    feynmanRule(momentum(a),field(s))
+
+Returns the Feynman rule for the given field(s), and momenta 
+  One field:  Feynman rule for the incoming field
+  Two fields: Feynman rule for the propagator
+  Three+ fields: Feynman rule for the vertex 
+"""
+function feynmanRule((p#=Momentum=#,f)::Tuple{Any,AbstractField};kw...)
+  return ""
+end
+
+function feynmanRule((p1,f1)::Tuple{Any,AbstractField},(p2,f2)::Tuple{Any,AbstractField};kw...)
+  @assert p1==p2
+  return feynmanRule(p1,f1,f2;kw...)
+end
+
+function feynmanRule(p1,f1::AbstractField,f2::AbstractField;kw...)
+  return feynmanPropagator(p1,mass(f1);kw...)
+end
+
+function feynmanPropagator(momentum,mass;MIME="text/FORM")
+  if mass===:none
+    return "-$(repr(MIME,im))*inv($(repr(MIME, momentum.symbol))^2+$(repr(MIME,im))*eps)"
+  else
+    return "$(repr(MIME,im))*inv($(repr(MIME, momentum.symbol))^2-$(repr(MIME, mass))^2+$(repr(MIME,im))*eps)"
+  end
+end
+
+function feynmanRule(::Vararg{Tuple{Any,AbstractField},N};kw...) where {N}
+  return ""
+end
+
+
+
   
 end

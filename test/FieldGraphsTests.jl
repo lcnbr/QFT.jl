@@ -35,7 +35,16 @@ fg = FieldGraph([-2,1,-1,-4,3,-3,8,2,5,6,4,7],
 [0,2,0,0,4,0,7,1,6,5,3,8],
 [1,1,1,2,2,2,3,3,3,4,4,4],
 [Phi1c,Photon,Phi1,Phi2c,Photon,Phi2,Phi2c,Photon,Phi2,Phi2c,Photon,Phi2];strict=true)
+nickel_index(fg)
+
 to_graphviz(fg)
+applyRules(fg)
+
+
+collect(zip(half_edge_pairs(fg)...))
+field.(Ref(fg),dangling_edges(fg))
+momentum(fg,half_edges(fg,1))
+
 map.(momentum(fg),map(x->x.index,field(fg)))
 fg = FieldGraph(5)
 

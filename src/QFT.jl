@@ -2,6 +2,7 @@ module QFT
 
 # Write your package code here.
 include("Form.jl")
+include("nickelindex.jl")
 function mass() end
 include("Fields.jl")
 include("MomentumGraphs.jl")

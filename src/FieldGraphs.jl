@@ -1,17 +1,17 @@
 module FieldGraphs
 using Reexport
-export SchFieldGraph,AbstractFieldGraph,FieldGraph,field
+export SchFieldGraph, AbstractFieldGraph, FieldGraph, field, applyRules
 @reexport using ...MassiveMomentumGraphs
-@reexport import ...MassiveMomentumGraphs: add_half_edge_pairs!, add_half_edge_pair!, add_dangling_edge!, add_dangling_edges!,add_half_edges!,to_graphviz,to_graphviz_property_graph,sort,nickel_index
+@reexport import ...MassiveMomentumGraphs: add_half_edge_pairs!, add_half_edge_pair!, add_dangling_edge!, add_dangling_edges!, add_half_edges!, to_graphviz, to_graphviz_property_graph, sort, nickel_index
 
 
-import ..QFT:mass
+import ..QFT: mass
 
 using ...Form
 using ...Fields
 using Catlab
 using Catlab.CategoricalAlgebra
-using Catlab.Graphs:vertex
+using Catlab.Graphs: vertex
 using Catlab.Graphs.PropertyGraphs
 import Symbolics: variables, value, solve_for
 
@@ -96,8 +96,10 @@ function add_half_edges!(g::AbstractFieldGraph, invs::Vector{Int}, vertex::Vecto
   if strict
     for h in he
 
-      #@show typeof(field(g, h)) sink(g, h) adjoint(typeof(field(g, inv(g, h))))
+      @show typeof(field(g, h)), sink(g, h), adjoint(typeof(field(g, inv(g, h))))
       @assert inv(g, h) == h || typeof(field(g, h)) == adjoint(typeof(field(g, inv(g, h))))
+
+      @show field(g, h)
 
       @assert isselfadjoint(field(g, h)) || isadjoint(field(g, h)) == sink(g, h)
     end
@@ -116,35 +118,61 @@ function add_half_edges!(g::AbstractFieldGraph, invs::Vector{Int}, vertex::Vecto
   nfIn = length(first(half_edge_pairs(g)))
   nfExt = length(dangling_edges(g))
 
-  innermomenta = FVector.(value.(variables(:q, (niIn+1):nfIn)))
+  rInt = (niIn+1):nfIn
+  rExt = (niExt+1):nfExt
+
+
+  innermomenta = FVector.(addSub.(Ref(:q), rInt), rInt, Ref("alpha"))
   inh = half_edge_pairs(g)
 
-  set_subpart!(g, inh[1][(niIn+1):nfIn], :momentum, innermomenta)
-  set_subpart!(g, inh[2][(niIn+1):nfIn], :momentum, innermomenta)
+  set_subpart!(g, inh[1][rInt], :momentum, innermomenta)
+  set_subpart!(g, inh[2][rInt], :momentum, innermomenta)
 
 
-  outermomenta = FVector.(value.(variables(:p, (niExt+1):nfExt)))
-  exth = dangling_edges(g)[(niExt+1):nfExt]
+
+  outermomenta = FVector.(addSub.(Ref(:p), rExt), rExt)
+  exth = dangling_edges(g)[rExt]
   set_subpart!(g, exth, :momentum, outermomenta)
   he
 end
 
-
+using ...NickelIndex
+using TypedTables
 
 function nickel_index(g::AbstractFieldGraph)
-  index = edge_index(g)
-  index *= " : "
+  index = SimpleNickel(edge_index(g))
+
+  massormomentum = String[]
   for v ∈ vertices(g)
 
-    momenta = join(string.(momentum(g, (dangling_edges(g, v)))), " ")
-    index *= string("|", momenta)
+    push!.(Ref(massormomentum), string.(momentum(g, (dangling_edges(g, v)))))
     ns = Base.sort(all_neighbors(g, v))
     newns = ns[ns.>v]
-    index *= string(join(string.("M", mass(g, newns), " ")))
+    push!.(Ref(massormomentum), string.("M", mass(g, newns)))
 
   end
+  @show massormomentum
 
-  index
+  EdgeMetaNickel(index,Table(e=massormomentum))
+end
+
+function applyRules(g::AbstractFieldGraph; MIME="text/FORM")
+  res = "1"
+
+  for (s, t) in (zip(half_edge_pairs(g)...))
+    f = feynmanRule((momentum(g, s), field(g, s)), (momentum(g, t), field(g, t)); MIME)
+    f == "" || (res *= "*" * f)
+  end
+  for ext in dangling_edges(g)
+    f = feynmanRule((momentum(g, ext), field(g, ext)); MIME)
+    f == "" || (res *= "*" * f)
+  end
+  for v in vertices(g)
+    f = feynmanRule(collect(zip(momentum(g, half_edges(g, v)), field(g, half_edges(g, v))))...; MIME)
+    f == "" || (res *= "*" * f)
+  end
+  return res
+
 end
 
 

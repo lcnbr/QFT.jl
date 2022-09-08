@@ -71,14 +71,19 @@ end
 #*****************************************************************************
 # Edit graph
 
+subscript(i) = join(Char(0x2080 + d) for d in reverse!(digits(i)))
+addSub(p,i)=Symbol(p,subscript(i))
+
 function add_half_edge_pairs!(g::AbstractMomentumGraph, srcs::AbstractVector{Int}, tgts::AbstractVector{Int};
   indeps=falses(length(srcs)),kw...)
 
   @assert (n = length(srcs)) == length(tgts)
   
   neIn=length(first(half_edge_pairs(g)))
+  r=(neIn+1):neIn+n
 
-  momenta=FVector.(value.(variables(:q,(neIn+1):neIn+n)))
+  momenta=FVector.(addSub.(Ref(:p), r),r)
+
 
   outs = add_parts!(g, :H, n; vertex=srcs, kw...)
   ins = add_parts!(g, :H, n; vertex=tgts, kw...)
@@ -93,12 +98,12 @@ function add_half_edge_pairs!(g::AbstractMomentumGraph, srcs::AbstractVector{Int
   first(outs):last(ins)
 end
 
-function add_dangling_edge!(g::AbstractMomentumGraph, v::Int; dir=true,momentum=FVector(value(variables(:p,length(dangling_edges(g))+1)[1])),indep=true, kw...)
+function add_dangling_edge!(g::AbstractMomentumGraph, v::Int; dir=true,n=length(dangling_edges(g))+1,momentum=FVector(addSub(:p,n),n),indep=true, kw...)
   
   H=add_part!(g, :H; vertex=v, inv=nparts(g,:H)+1,sink=dir,momentum=momentum,indep=indep,kw...)
 end
 
-function add_dangling_edges!(g::AbstractMomentumGraph, vs::AbstractVector{Int}; dirs::AbstractVector{Bool}=trues(length(vs)),momenta=FVector.(value.(variables(:p,(length(dangling_edges(g))+1):length(dangling_edges(g))+length(vs)))),indeps=trues(length(vs)),kw...)
+function add_dangling_edges!(g::AbstractMomentumGraph, vs::AbstractVector{Int}; dirs::AbstractVector{Bool}=trues(length(vs)),r=(length(dangling_edges(g))+1):(length(dangling_edges(g))+length(vs)),momenta=FVector.(addSub.(Ref(:p), r),r),indeps=trues(length(vs)),kw...)
   neIn=length(dangling_edges(g))
   n, k = length(vs), nparts(g, :H)
   H=add_parts!(g, :H, n; vertex=vs, inv=(k+1):(k+n),sink=dirs, momentum=momenta,indep=indeps,kw...)
@@ -134,14 +139,18 @@ function add_half_edges!(g::AbstractMomentumGraph, inv::Vector{Int},vertex::Vect
   nfIn =length(first(half_edge_pairs(g)))
   nfExt=length(dangling_edges(g))
 
-  innermomenta=FVector.(value.(variables(:q,(niIn+1):nfIn)))
-  inh=vcat((half_edge_pairs(g)[(niIn+1):nfIn])...)
+  rInt=(niIn+1):nfIn
+  rExt=(niExt+1):nfExt
+
+
+  innermomenta=FVector.(addSub.(Ref(:q), rInt),rInt)
+  inh=vcat((half_edge_pairs(g)[rInt])...)
   
   set_subpart!(g, inh, :momentum,repeat(innermomenta, inner=2))
 
 
-  outermomenta=FVector.(value.(variables(:p,(niExt+1):nfExt)))
-  exth=dangling_edges(g)[(niExt+1):nfExt]
+  outermomenta=FVector.(addSub.(Ref(:p), rExt),rExt)
+  exth=dangling_edges(g)[rExt]
   set_subpart!(g, exth, :momentum,outermomenta)
   he
 end
