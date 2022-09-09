@@ -20,16 +20,13 @@ TermInterface = "8ea1fca8-c5ef-4a55-8b96-4e9afe9c9a3c"
 TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
-
-Latexify = "0.15"
-
-
-Catlab = "0.14"
-Reexport = "1"
 CSetAutomorphisms = "0.1"
+Catlab = "0.14"
+Latexify = "0.15"
+Reexport = "1"
 SymbolicUtils = "0.19"
 Symbolics = "4"
-
+SymmetricDispatch = "0.1"
 julia = "1.7"
 
 [extras]
