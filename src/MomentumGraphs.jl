@@ -114,8 +114,8 @@ indep!(g::AbstractMomentumGraph,args... ) = set_subpart!(g, args..., :indep,true
 dep!(g::AbstractMomentumGraph,args... ) = set_subpart!(g, args..., :indep,false)
 
 
-function set_independent_loops!(g::AbstractMomentumGraph;kw...)
-  spanningTree=subtree(g,dfs_parents(g,1,all_neighbors;kw...))  
+function set_independent_loops!(g::AbstractMomentumGraph;weightfunction::Function=(g,x)->1,kw...)
+  spanningTree=kruskal(g,weightfunction;kw...)
   set_independent_loops!(g,spanningTree)
 end
 
