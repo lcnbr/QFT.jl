@@ -19,6 +19,8 @@ struct FSymbol
   symbol::SymbolicUtils.Sym
 end
 
+Base.isless(::FSymbol, ::FSymbol) = false
+
 unicode2ascii(s::FSymbol) = unicode2ascii(tosymbol(s.symbol))
 
 function ⋅(a, b) end
@@ -53,6 +55,8 @@ struct FIndex
     new(dimension, ID, is_gensym(ID))
   end
 end
+Base.isless(::FIndex, ::FIndex) = false
+
 unicode2ascii(s::FIndex) = unicode2ascii(s.ID)
 
 function FIndex(ID::Symbol=gensym(:dummy); dimension=4)
@@ -83,7 +87,7 @@ mutable struct FVector
   index::FIndex
   FVector(symbol::FSymbol, index::FIndex) = new(symbol, index)
 end
-
+Base.isless(::FVector, ::FVector) = false
 
 ⋅(a::FVector, b::FVector) = FVector(a.symbol ⋅ b.symbol, a.index)
 +(a::FVector, b::FVector) = FVector(a.symbol + b.symbol)
