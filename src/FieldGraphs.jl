@@ -5,7 +5,6 @@ export SchFieldGraph, AbstractFieldGraph, FieldGraph, field, applyRules
 @reexport import ...MassiveMomentumGraphs: add_half_edge_pairs!, add_half_edge_pair!, add_dangling_edge!, add_dangling_edges!, add_half_edges!, to_graphviz, to_graphviz_property_graph, sort, nickel_index
 
 
-import ..QFT: mass
 
 using ...Form
 using ...Fields
@@ -13,22 +12,23 @@ using Catlab
 using Catlab.CategoricalAlgebra
 using Catlab.Graphs: vertex
 using Catlab.Graphs.PropertyGraphs
+using ...NickelIndex
+using TypedTables
 import Symbolics: variables, value, solve_for
+import ..QFT: mass
+import ...Fields: basefield
 
 @present SchFieldGraph <: SchMassiveMomentumGraph begin
   Field::AttrType
   field::Attr(H, Field)
 end
 
-
 @abstract_acset_type AbstractFieldGraph <: AbstractMassiveMomentumGraph
-
 
 @acset_type FieldGraphGeneric(SchFieldGraph, index=[:inv, :vertex, :sink, :momentum, :indep, :mass, :field]) <: AbstractFieldGraph
 
 FieldGraph = FieldGraphGeneric{Bool,FVector,Real,AbstractField}
 
-import ...Fields: basefield
 field(g::AbstractFieldGraph, args...) = subpart(g, args..., :field)
 sort(g::AbstractFieldGraph, args...) = sort(args..., by=e -> mass(g, e))
 
@@ -95,11 +95,7 @@ function add_half_edges!(g::AbstractFieldGraph, invs::Vector{Int}, vertex::Vecto
   set_subpart!(g, he, :field, map.(fieldtypes, he))
   if strict
     for h in he
-
-      @show typeof(field(g, h)), sink(g, h), adjoint(typeof(field(g, inv(g, h))))
       @assert inv(g, h) == h || typeof(field(g, h)) == adjoint(typeof(field(g, inv(g, h))))
-
-      @show field(g, h)
 
       @assert isselfadjoint(field(g, h)) || isadjoint(field(g, h)) == sink(g, h)
     end
@@ -136,8 +132,6 @@ function add_half_edges!(g::AbstractFieldGraph, invs::Vector{Int}, vertex::Vecto
   he
 end
 
-using ...NickelIndex
-using TypedTables
 
 function nickel_index(g::AbstractFieldGraph)
   index = SimpleNickel(edge_index(g))
@@ -156,23 +150,48 @@ function nickel_index(g::AbstractFieldGraph)
   EdgeMetaNickel(index,Table(e=massormomentum))
 end
 
-function applyRules(g::AbstractFieldGraph; MIME="text/FORM")
-  res = "1"
+import ...Fields: feynmanRule
+
+function feynmanRule(g::AbstractFieldGraph,mime::MIME,es...)
+
+  feynmanRule(mime,map(h->(momentum(g,h),field(g,h)),es)...)
+end
+
+
+
+function applyRules(g::AbstractFieldGraph, mime::MIME)
+  res=init(g,mime)
 
   for (s, t) in (zip(half_edge_pairs(g)...))
-    f = feynmanRule((momentum(g, s), field(g, s)), (momentum(g, t), field(g, t)); MIME)
-    f == "" || (res *= "*" * f)
+    f = feynmanRule(g,mime,s,t)
+    res=joinRule!(res,f,mime)
   end
   for ext in dangling_edges(g)
-    f = feynmanRule((momentum(g, ext), field(g, ext)); MIME)
-    f == "" || (res *= "*" * f)
+    f = feynmanRule(g,mime,ext)
+    res=joinRule!(res,f,mime)
   end
   for v in vertices(g)
-    f = feynmanRule(collect(zip(momentum(g, half_edges(g, v)), field(g, half_edges(g, v))))...; MIME)
-    f == "" || (res *= "*" * f)
+    f = feynmanRule(g,mime,half_edges(g, v)...)
+    res=joinRule!(res,f,mime)
   end
   return res
 
+end
+
+function init(::MIME)
+  return 1
+end
+
+function init(g::AbstractFieldGraph,::MIME"text/FORM")
+  return "1"
+end
+
+function joinRule!(res,rule,::MIME"text/FORM")
+  if rule == ""
+    return res
+  else 
+    return res * "*" * rule
+  end
 end
 
 
@@ -206,15 +225,15 @@ function to_graphviz_property_graph(g::AbstractFieldGraph;
     # Dangling half-edge: add an invisible vertex.
     v = add_vertex!(pg, style="invis", shape="none", label="")
     if sink(g, h)
-      e′ = add_edge!(pg, v, vertex(g, h), penwidth=string(mass(g, h) + 1), color=color(field(g, h)))
+      e′ = add_edge!(pg, v, vertex(g, h), penwidth=string(mass(g, h) + 1), color=color(field(g, h)),label=string(momentum(g,h).symbol))
     else
-      e′ = add_edge!(pg, vertex(g, h), v, penwidth=string(mass(g, h) + 1), color=color(field(g, h)))
+      e′ = add_edge!(pg, vertex(g, h), v, penwidth=string(mass(g, h) + 1), color=color(field(g, h)),label=string(momentum(g,h).symbol))
     end
     set_eprops!(pg, e′, edge_label(g, edge_labels, h))
   end
   for (source, sink) ∈ zip(half_edge_pairs(g)...)
     (src, tgt) = (vertex(g, source), vertex(g, sink))
-    e = add_edge!(pg, src, tgt, penwidth=string(mass(g, source) + 1), color=string(color(field(g, source)), ";0.5:", color(field(g, sink))))
+    e = add_edge!(pg, src, tgt, penwidth=string(mass(g, source) + 1), color=string(color(field(g, source)), ";0.5:", color(field(g, sink))),label=string(momentum(g,source).symbol))
     set_eprops!(pg, e, edge_label(g, edge_labels, e))
   end
   pg

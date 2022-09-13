@@ -36,7 +36,7 @@ qd.g
 to_graphviz(qd.g)
 using QFT.NickelIndex: root
 root(qd.nickel_index)
-applyRules(qd.g)
+applyRules(qd.g,MIME"text/FORM"())
 toform(qd)
 using QFT 
 QFT.FieldGraphs.ne(qd.g)
@@ -45,8 +45,8 @@ nickel_index(call_nauty(qd.g).cset)
 diags=include("QGRAFjl/1lSQED.jl")
 
 
-
 qDiags=[qDiagram(;diag...) for diag in diags]
+cycle_basis(qDiags[1].g)
 open("diags.frm";create=true,write=true) do io
   write(io,"""
   Symbol x;
@@ -61,18 +61,30 @@ CF prop;
 CF inv;
   """)
   for qd in qDiags
-    println(io,toform(qd))
+    toform(io,qd)
+    println(io,"")
   end
 end;
 
 
 toform.(qDiags)
-i=13
+i=  12
 qDiags[i].nloops
-call_nauty(qDiags[i].g).cset
-(applyRules(qDiags[i].g;MIME="text/FORM"))
+nloops(qDiags[i].g)
+qdg=qDiags[i].g
+to_graphviz(qDiags[i].g,node_labels=true)
+diags=(x -> x.g).(qDiags)
+cycle_basis(qDiags[i].g)
+to_graphviz(canonical_iso(qDiags[i].g;pres=nothing))
+(applyRules(qDiags[i].g,MIME"text/FORM"()))
+(applyRules.(diags,Ref(MIME"qcounting"())))
+
+
+filter(g->applyRules(g,MIME"qcounting"),diags)
+
+toform(stdout,qDiags[i])
 qDiags[i].nickel_index
-dict=momentum_equations_solved( qDiags[i].g)
+dict=momentum_equations_solved(qdg)
 
 
 
@@ -80,13 +92,27 @@ SymbolicUtils.Sym{Real, Base.ImmutableDict{DataType, Any}} <: SymbolicUtils.Sym{
 using Symbolics: tosymbol
 SymbolicUtils.Add<:SymbolicUtils.Symbolic
 dict
-show(stdout, MIME("text/FORM"), dict)
+repr( "text/FORM", dict)
 
 
 
+spanningTree = subtree( qDiags[i].g, dfs_parents( qDiags[i].g, 4, all_neighbors, by=e -> mass( qDiags[i].g, e)))
+to_graphviz(spanningTree, node_labels=true, edge_labels=true)
 
+V=vertices(qDiags[i].g)
 
+collect(zip(half_edge_pairs(qDiags[i].g;by=h->mass(qDiags[i].g,h))...))
 
+mst=kruskal(qDiags[i].g,mass)
+dom(hom(mst))
+
+i=13
+to_graphviz(kruskal(qDiags[i].g,mass;rev=true))
+spanningTree=Subobject(qDiags[i].g, V=V)
+so=Subobject(qDiags[i].g, V=[1,4],H=[1,2])
+spanningTree = spanningTree ∨ so
+half_edge_pairs(qDiags[i].g)
+length(connected_components(dom(hom(spanningTree))))
 using StatsBase
 
 import Catlab.Graphics.Graphviz: Graph,run_graphviz
@@ -100,15 +126,28 @@ function ⊕(a, b...)
   return ⊕(a, ⊕(b...))
 end
 
+using Catlab.Graphs
+
+connected_components(alldiags)
 unique!(d -> d.nickel_index, qDiags)
 qDiags
 (d -> d.nickel_index).(qDiags)
 #(sample(qDiags,    253 , replace=false))...
 alldiags=(⊕(((x -> x.g).(qDiags))...))
+
+
+diags[11]
+
+s=sink(g,half_edges(g;by=h->mass(g,h),rev=true))
+half_edges(g;by=h->mass(g,h),rev=true)[s]
+in_edges(g;by=h->mass(g,h),rev=true)
+g=⊕(diags[[11,5,2,12]]...)
+to_graphviz(kruskal(⊕(diags[[11,5,2,12]]...),mass;rev=true),node_labels=true, edge_labels=true)
+
 to_graphviz(alldiags,)
 (x -> x.g).(qDiags)
-
-
+to_graphviz(kruskal(alldiags,mass;rev=true))
+FieldGraphs.half_edges(alldiags,2,2)
 
 
 
