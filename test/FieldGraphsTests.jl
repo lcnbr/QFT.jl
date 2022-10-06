@@ -37,6 +37,7 @@ fg = FieldGraph([-2,1,-1,-4,3,-3,8,2,5,6,4,7],
 [Phi1c,Photon,Phi1,Phi2c,Photon,Phi2,Phi2c,Photon,Phi2,Phi2c,Photon,Phi2];strict=true)
 nickel_index(fg)
 
+string(momentum(fg,2))
 to_graphviz(fg)
 applyRules(fg)
 
