@@ -145,7 +145,7 @@ function nickel_index(g::AbstractFieldGraph)
     push!.(Ref(massormomentum), string.("M", mass(g, newns)))
 
   end
-  @show massormomentum
+
 
   EdgeMetaNickel(index,Table(e=massormomentum))
 end
