@@ -42,7 +42,7 @@ using QFT
 QFT.FieldGraphs.ne(qd.g)
 
 nickel_index(call_nauty(qd.g).cset)
-diags=include("QGRAFjl/1lSQED.jl")
+diags=include("QGRAFjl/0lSQED.jl")
 
 
 qDiags=[qDiagram(;diag...) for diag in diags]
@@ -68,7 +68,7 @@ end;
 
 
 toform.(qDiags)
-i=  12
+i=  1
 qDiags[i].nloops
 nloops(qDiags[i].g)
 qdg=qDiags[i].g
