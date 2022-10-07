@@ -6,7 +6,7 @@ abstract type AbstractDiagram end
 
 using ...NickelIndex
 
-struct qDiagram{G}
+mutable struct qDiagram{G}
   ID::Int
   pre_factor::Rational
   nloops::Int

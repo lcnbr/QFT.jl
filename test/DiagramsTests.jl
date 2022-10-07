@@ -42,11 +42,76 @@ using QFT
 QFT.FieldGraphs.ne(qd.g)
 
 nickel_index(call_nauty(qd.g).cset)
-diags=include("QGRAFjl/0lSQED.jl")
+diags=include("QGRAFjl/1lSQED.jl")
 
 
 qDiags=[qDiagram(;diag...) for diag in diags]
-cycle_basis(qDiags[1].g)
+
+qDiags[1].g
+
+i=    5
+
+to_graphviz(qDiags[i].g,node_labels=true)
+cycle_basis(qDiags[i].g)
+
+gr=qDiags[i].g
+
+function half_edge_cycles(g::AbstractDirectedHalfEdgeGraph)
+seen =[]
+cycles=[]
+for c in cycle_basis(g)
+  lc=length(c)
+
+  
+    append!(c,c[1])
+  
+  cycle=[]
+
+  w=c[1]  
+  @show c
+  for v in c[2:end]
+    @show v w
+    pairs=collect(zip(half_edge_pairs(g,w,v)...))
+    @show pairs
+    hs = first(setdiff(pairs,seen))
+    push!(seen,hs)
+    push!(cycle,hs...)
+    w=v
+  end
+  push!(cycles,cycle)
+end
+return cycles
+end
+
+function scaleless(g::AbstractFieldGraph)
+  cycles =cycle_basis(g)
+  isscaleless=false
+  for c in cycles
+    hs= collect(Iterators.flatten(half_edges.(Ref(g),c)))
+    fields=unique!(typeof.(field.(Ref(g),hs)))
+    @show  fields
+    if Bool(Phi1 in fields) ⊻  Bool(Phi2 in fields)
+      isscaleless=true
+    end
+  end
+  return isscaleless
+end
+grs=(x->  x.g).(qDiags)
+to_graphviz.(grs[.!scaleless.(grs)])
+collect(zip(half_edge_pairs(grs[5],3,2)...))
+g=grs[5]
+to_graphviz(grs[i])
+srcs=1
+tgts=2
+out = false ? out_edges(g, srcs) : half_edges(g, srcs)
+ins = inv(g, out)
+has_tgt = vertex(g, ins) .== tgts
+return (out[has_tgt], ins[has_tgt])
+end
+
+
+
+
 open("diags.frm";create=true,write=true) do io
   write(io,"""
   Symbol x;
@@ -68,11 +133,7 @@ end;
 
 
 toform.(qDiags)
-i=  1
-qDiags[i].nloops
-nloops(qDiags[i].g)
-qdg=qDiags[i].g
-to_graphviz(qDiags[i].g,node_labels=true)
+
 diags=(x -> x.g).(qDiags)
 cycle_basis(qDiags[i].g)
 to_graphviz(canonical_iso(qDiags[i].g;pres=nothing))
