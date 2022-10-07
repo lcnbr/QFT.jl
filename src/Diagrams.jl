@@ -42,6 +42,10 @@ function toform(io,qd::qDiagram)
   println(io,"L [d$(qd.ID)l$(qd.nloops)$(repr("text/plain",root(qd.nickel_index)))] = "*applyRules(qd.g,MIME"text/FORM"())*";")
   println(io,"#procedure momentumRouting")
   println(io,repr( "text/FORM", momentum_equations_solved(qd)))
+  hs=half_edge_pairs(qd.g)[1]
+  for (i,h) in enumerate(hs[indep(qd.g,hs)])
+    println(io,"Id ",repr("text/FORM",momentum(qd.g,h).symbol),"= ","l$i;")
+  end
   println(io,"#endprocedure")
   println(io,"*--#]d$(qd.ID)l$(qd.nloops):")
 end
