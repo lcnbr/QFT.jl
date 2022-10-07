@@ -1,7 +1,7 @@
 module MomentumGraphs
 using Reexport
 
-export SchMomentumGraph,AbstractMomentumGraph,MomentumGraph,momentum,momentum_equation,momentum_equations,indep!,dep!,dangling_momentum_equation,momentum_equations_solved
+export SchMomentumGraph,AbstractMomentumGraph,MomentumGraph,momentum,momentum_equation,momentum_equations,indep!,dep!,dangling_momentum_equation,momentum_equations_solved,indep,momentum
 
 @reexport import DirectedHalfEdgeGraphs: add_half_edge_pairs!, add_half_edge_pair!, add_dangling_edge!, add_dangling_edges!,add_half_edges!,to_graphviz,to_graphviz_property_graph,sort
 
